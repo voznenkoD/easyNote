@@ -6,21 +6,26 @@ import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import org.eljetto.easynote.metronome.Metronome;
+
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
     ImageView mImageView;
     ImageButton mButton;
     boolean isActive;
     private long startTime = 0L;
-    private Handler customHandler = new Handler();
+    private Handler timerHandler = new Handler();
     long timeInMilliseconds = 0L;
     long timeSwapBuff = 0L;
     long updatedTime = 0L;
     private TextView timerValue;
+    private Metronome metronome;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,22 +34,33 @@ public class MainActivity extends AppCompatActivity {
         mButton = (ImageButton) findViewById(R.id.start);
         timerValue = (TextView) findViewById(R.id.timer);
 
+        try {
+            metronome = new Metronome(this);
+            metronome.setBeatsInBar(4);
+            metronome.setBpm(120);
+            metronome.setPlay(false);
+        } catch (IOException e) {
+            //TODO pop up handler
+        }
+
         mButton.setOnClickListener(new View.OnClickListener() {
             ChangeImageTask changeImageTask;
             @Override
             public void onClick(View v) {
                 isActive = !isActive;
                 if (isActive) {
+                    metronome.setPlay(true);
                     changeImageTask = new ChangeImageTask();
                     changeImageTask.execute();
                     mButton.setImageResource(R.drawable.pause);
                     startTime = SystemClock.uptimeMillis();
-                    customHandler.postDelayed(updateTimerThread, 0);
+                    timerHandler.postDelayed(updateTimerThread, 0);
                 } else {
+                    metronome.setPlay(false);
                     changeImageTask.cancel(true);
                     mButton.setImageResource(R.drawable.play);
                     timeInMilliseconds = 0;
-                    customHandler.removeCallbacks(updateTimerThread);
+                    timerHandler.removeCallbacks(updateTimerThread);
                 }
             }
         });
@@ -55,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected String doInBackground(Void... params) {
+            metronome.play();//TODO fix issue
             while (isActive) {
                 for (int i = 1; i < 6; i++) {
                     try {
@@ -62,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
                         Thread.sleep(2000L);
                     } catch (InterruptedException e) {
                         timeInMilliseconds = 0;
-                        customHandler.removeCallbacks(updateTimerThread);
+                        timerHandler.removeCallbacks(updateTimerThread);
                     }
                 }
             }
@@ -70,13 +87,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
+        protected void onProgressUpdate(Integer... values) {
+            mImageView.setImageResource(getResources().getIdentifier("note" + values[0], "drawable", getPackageName()));
         }
 
         @Override
-        protected void onProgressUpdate(Integer... values) {
-            mImageView.setImageResource(getResources().getIdentifier("note" + values[0], "drawable", getPackageName()));
+        protected void onCancelled() {
+            timerValue.setText("" + 0 + ":" + String.format("%02d", 0));
+            super.onCancelled();
         }
     }
 
@@ -88,8 +106,7 @@ public class MainActivity extends AppCompatActivity {
             int mins = secs / 60;
             secs = secs % 60;
             timerValue.setText("" + mins + ":" + String.format("%02d", secs));
-            customHandler.postDelayed(this, 0);
+            timerHandler.postDelayed(this, 0);
         }
     };
-
 }

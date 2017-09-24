@@ -24,6 +24,7 @@ public class Metronome {
         audioGenerator.createPlayer();
         tick = audioGenerator.getWaveInfo().getDataSize();
         bufferSize = tick * 2;
+        calcSilence();
     }
 
     public void calcSilence() {
@@ -31,8 +32,7 @@ public class Metronome {
     }
 
     public void play() {
-        calcSilence();
-
+//TODO separate thread
         byte[] sound = new byte[bufferSize];
         byte[] ding = audioGenerator.getDing();
         byte[] dong = audioGenerator.getDong();
@@ -70,11 +70,8 @@ public class Metronome {
     }
 
     public void setBpm(double bpm) {
-        this.bpm = bpm;
-    }
-
-    public void setPlay(boolean play) {
-        this.play = play;
+        this.bpm = bpm/2 ;
+        calcSilence();
     }
 
     public void setBeatsInBar(int beatsInBar) {
@@ -83,5 +80,13 @@ public class Metronome {
 
     public double getBpm() {
         return bpm;
+    }
+
+    public boolean isPlay() {
+        return play;
+    }
+
+    public void setPlay(boolean play) {
+        this.play = play;
     }
 }
